@@ -77,6 +77,27 @@ build_ranked_vec <- function(full_df) {
   ranked_vec
 }
 
+flatten_list_columns <- function(df) {
+  df <- as.data.frame(df)
+  list_cols <- vapply(df, is.list, logical(1))
+  if (any(list_cols)) {
+    df[list_cols] <- lapply(df[list_cols], function(x) {
+      vapply(
+        x,
+        function(v) {
+          if (length(v) == 0) {
+            ""
+          } else {
+            paste(v, collapse = ";")
+          }
+        },
+        character(1)
+      )
+    })
+  }
+  df
+}
+
 
 # =============================================================================
 # TF REGULON GSEA
@@ -416,7 +437,11 @@ if (is.null(tf_act_df) || nrow(tf_act_df) == 0) {
         ) |>
         dplyr::arrange(dplyr::desc(priority_score))
 
-      write.csv(conv_df, file.path(OUTPUT_DIR, "TF_converged_final_candidates.csv"), row.names = FALSE)
+      write.csv(
+        flatten_list_columns(conv_df),
+        file.path(OUTPUT_DIR, "TF_converged_final_candidates.csv"),
+        row.names = FALSE
+      )
 
       if (length(converged) >= 3) {
         plot_conv <- dplyr::inner_join(

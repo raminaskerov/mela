@@ -50,14 +50,13 @@ load(file.path(DATA_DIR, "checkpoint_03.RData"))
 # ── Load pathway_gene_df ─────────────────────────────────────────────────────
 
 resolve_pathway_gene_file <- function() {
-  candidates <- c(
-    file.path(DATA_DIR, "newoutput", "pathway_gene_assignments2.csv"),
-    file.path(DATA_DIR, "newoutput", "pathway_gene_assignments.csv2"),
-    file.path(DATA_DIR, "output", "pathway_gene_assignments2.csv"),
-    file.path(DATA_DIR, "output", "pathway_gene_assignments.csv2"),
-    file.path(OUTPUT_DIR, "pathway_gene_assignments2.csv"),
-    file.path(OUTPUT_DIR, "pathway_gene_assignments.csv2")
-  )
+  candidates <- c("/home/ramin/mela/output/pathway_gene_assignments2.csv")
+    #file.path(DATA_DIR, "newoutput", "pathway_gene_assignments2.csv"),
+    #file.path(DATA_DIR, "newoutput", "pathway_gene_assignments.csv2"),
+    #file.path(DATA_DIR, "output", "pathway_gene_assignments2.csv"),
+    #file.path(DATA_DIR, "output", "pathway_gene_assignments.csv2"),
+    #file.path(OUTPUT_DIR, "pathway_gene_assignments2.csv"),
+    #file.path(OUTPUT_DIR, "pathway_gene_assignments.csv2"))
 
   existing <- candidates[file.exists(candidates)]
   if (length(existing) > 0) {
@@ -67,7 +66,7 @@ resolve_pathway_gene_file <- function() {
 }
 
 if (!exists("pathway_gene_df")) {
-  pathway_file <- resolve_pathway_gene_file()
+  pathway_file <- "/home/ramin/mela/output/pathway_gene_assignments2.csv"
   if (is.null(pathway_file)) {
     stop("pathway_gene_df not found. Provide the object in-session or place a pathway assignment CSV in newoutput/ or output/.")
   }

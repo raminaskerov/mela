@@ -1,0 +1,32 @@
+name: mela_env
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - r-base=4.5.*
+  - radian
+  - r-readr
+  - r-dplyr
+  - r-tidyr
+  - r-ggplot2
+  - r-ggrepel
+  - r-pheatmap
+  - r-rcolorbrewer
+  - r-scales
+  - r-patchwork
+  - r-viridis
+  - r-stringr
+  - r-igraph
+  - r-ggraph
+  - r-tidygraph
+  - r-wgcna
+  - r-dynamictreecut
+  - r-enrichr
+  - bioconductor-noiseq
+  - bioconductor-clusterprofiler
+  - bioconductor-org.hs.eg.db
+  - bioconductor-annotationdbi
+  - bioconductor-fgsea
+  - bioconductor-pathview
+  - bioconductor-multimir
+  - bioconductor-stringdb

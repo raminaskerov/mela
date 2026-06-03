@@ -20,7 +20,7 @@
 #   Comp1: A375_SC vs A375_RC  ← primary resistance signal
 #   Comp2: A375_SC vs A375_S10 ← drug effect in sensitive
 #   Comp3: A375_RC vs A375_R10 ← drug effect in resistant
-#
+#   Comp4: A375_S10 vs A375_R10 ← drug effect sensitive vs resistant
 # NOTES:
 #   - Files are UTF-16LE encoded (GEO submission format)
 #   - WGCNA with n=4 is exploratory; interpretation caveats noted inline
@@ -32,10 +32,9 @@
 # SECTION 0: SETUP & DATA LOADING
 # =============================================================================
 
-# ── 0.1  Install packages (run once) ─────────────────────────────────────────
+# ── 0.1  Installing packages  ─────────────────────────────────────────
 setwd("C:/bioinformatics")
-a <- "na"
-print(a)
+
 cran_pkgs <- c(
   "readr",          # file reading with encoding control
   "dplyr",          # data wrangling
@@ -59,7 +58,7 @@ for (p in cran_pkgs) {
   if (!requireNamespace(p, quietly = TRUE)) install.packages(p)
 }
 
-# ── 0.2  Load libraries ───────────────────────────────────────────────────────
+# ── 0.2  Loading libraries ───────────────────────────────────────────────────────
 
 suppressPackageStartupMessages({
   library(readr);      library(dplyr);     library(tidyr)
@@ -74,10 +73,7 @@ suppressPackageStartupMessages({
   library(org.Hs.eg.db)
 })
 
-# WGCNA: allow multi-threading if available
-enableWGCNAThreads()
-
-# ── 0.3  Set paths ────────────────────────────────────────────────────────────
+# ── 0.3  Setting paths ────────────────────────────────────────────────────────────
 
 DATA_DIR   <- "C:/bioinformatics" # directory containing the .gz files
 OUTPUT_DIR <- "output"     # all plots and tables go here
@@ -110,7 +106,7 @@ read_count_file <- function(path) {
 }
 
 
-# ── 0.5  Load all mRNA count files ───────────────────────────────────────────
+# ── 0.5  Loading all mRNA count files ───────────────────────────────────────────
 
 
 mrna_files <- list(
@@ -178,7 +174,7 @@ mrna_mat                   <- as.matrix(mrna_counts[, -1, drop = FALSE])
 rownames(mrna_mat)         <- mrna_counts$Gene_Symbol
 storage.mode(mrna_mat)     <- "integer"
 
-# ── 0.6  Load all miRNA count files ──────────────────────────────────────────
+# ── 0.6  Loading all miRNA count files ──────────────────────────────────────────
 
 
 mirna_files <- list(
@@ -235,7 +231,6 @@ mirna_cpm <- sweep(mirna_mat, 2, colSums(mirna_mat), FUN = "/") * 1e6
 # =============================================================================
 
 # NOISeq is designed for single-sample (no-replicate) differential expression.
-# It uses a noise distribution estimated from within-sample variability.
 
 # ── 1.1  Build NOISeq data object ────────────────────────────────────────────
 
@@ -293,7 +288,7 @@ run_noiseq <- function(count_mat, meta, samples_A, samples_B,
   full_results                 <- NOISeq::degenes(res, q = 0, M = NULL)
   
   degs <- full_results[full_results$prob >= q, ]
-  full_results$M <- full_results$M*-1
+  full_results$M <- full_results$M*-1 #sign correction: A vs B → B vs A
   degs$M <- degs$M*-1
   full_results$ranking <- full_results$ranking*-1
   degs$ranking <- degs$ranking*-1
@@ -401,13 +396,13 @@ run_noiseq_comparison <- function(count_mat, meta, samples_A, samples_B,
   
   
   full_results                 <- NOISeq::degenes(res, q = 0, M = NULL)
-  full_results$M <- full_results$M*-1
+  full_results$M <- full_results$M*-1 #sign correction: A vs B → B vs A
   
   full_results$ranking <- full_results$ranking*-1
   scores <- scale(abs(full_results$ranking)) * full_results$prob^1
   full_results$priority_score <- as.numeric(scores)
   
-  threshold     <- quantile(full_results$priority_score, 0.40)
+  threshold     <- quantile(full_results$priority_score, 0.40) #eliminating inflated low-read DEGs
   degs_priority <- full_results[full_results$priority_score >= threshold &
                                   full_results$prob >= q, ]
   
@@ -882,14 +877,13 @@ for (comp in gseacomparisons) {
   }
 }
 
-#=========================WEBGESTALT===================================#
+#===================rnk files for uploading to WEBGESTALT===================================#
 comparisons_gsea <- list(
   list(comp=comp1, label = "SC_vs_RC",  A = "A375_SC", B = "A375_RC"),
   list(comp=comp2, label = "SC_vs_S10", A = "A375_SC", B = "A375_S10"),
   list(comp=comp3, label = "RC_vs_R10", A = "A375_RC", B = "A375_R10"),
   list(comp=comp4, label = "S10_vs_R10",A = "A375_S10",B = "A375_R10")
 )
-rm(comparisons_gsea)
 for (c in comparisons_gsea) {
   ranked <- data.frame(
     gene  = rownames(c$comp$full),
@@ -906,13 +900,13 @@ for (c in comparisons_gsea) {
 }
 
 # =============================================================================
-# PRIORITY 1: miRNA–mRNA INTEGRATION NETWORK
+# PRIORITY 1: miRNA–mRNA INTEGRATION NETWORK (only for SC vs RC comparison)
 # =============================================================================
 # =============================================================================
 # METHOD B: PATHWAY-SPECIFIC SUBNETWORKS — REVERSE multiMiR QUERY
 # Logic: for each pathway, query multiMiR with pathway genes as TARGETS.
 # This returns ALL miRNAs known to regulate those genes, then we filter
-# down to your 47 DEG miRNAs (mirna_comp1) + anti-correlation check.
+# down to 47 DEG miRNAs (mirna_comp1) + anti-correlation check.
 # Advantage over Method A: captures pathway-gene regulations that were
 # missed when querying broadly from all DEG miRNAs.
 #
@@ -943,8 +937,8 @@ dir.create(file.path(OUTPUT_DIR, "method_b"), showWarnings = FALSE)
 # ── 1.1  Reload pathway_gene_df if not in session ────────────────────────────
 
 if (!exists("pathway_gene_df")) {
-  f <- file.path(OUTPUT_DIR, "pathway_gene_assignments.csv")
-  if (!file.exists(f)) stop("pathway_gene_assignments.csv not found. Run pathway_subnetworks.R first.")
+  f <- file.path(OUTPUT_DIR, "pathway_gene_assignments.csv2")
+  if (!file.exists(f)) stop("pathway_gene_assignments.csv2 not found. Run pathway_subnetworks.R first.")
   pathway_gene_df <- read.csv(f, stringsAsFactors = FALSE)
   message("  Reloaded pathway_gene_df from CSV.")
 }
@@ -970,7 +964,7 @@ message(sprintf("  DEG miRNAs (SC vs RC): %d", length(deg_mirna_ids)))
 
 mirna_fc_b <- data.frame(
   mirna  = rownames(mirna_comp1$full),
-  log2FC = mirna_comp1$full$M,   # sign correction applied here
+  log2FC = mirna_comp1$full$M,   
   stringsAsFactors = FALSE
 ) |>
   dplyr::filter(mirna %in% deg_mirna_ids)
@@ -2451,14 +2445,14 @@ conv_df <- NULL
 if (!is.null(fgsea_pathway) && nrow(fgsea_sig) > 0) {
 
   # Top active TFs: |delta| in top 20%
-  top_active_tfs <- tf_priority |> # deyisdim
+  top_active_tfs <- tf_priority |> ## changed
     dplyr::filter(abs(delta_RC_vs_SC) >= delta_q80) |>
     dplyr::pull(TF)
   message(sprintf("  Top-active TFs (|delta| >= %.2f): %d",
                   delta_q80, length(top_active_tfs)))
 
   # Build regulon as a named list: TF → target genes
-  tf_regulon_list <- split(regulon_net$target, regulon_net$source) ##duzelmelidi
+  tf_regulon_list <- split(regulon_net$target, regulon_net$source) ## must be corrected
 
   # For each significant pathway, find overlapping TFs
   conv_rows <- list()
@@ -2482,7 +2476,7 @@ if (!is.null(fgsea_pathway) && nrow(fgsea_sig) > 0) {
       if (!tf %in% names(tf_regulon_list)) next
       tf_targets <- tf_regulon_list[[tf]]
       overlap    <- intersect(tf_targets, pw_leading)
-      if (length(overlap) < 3) next ## duzelmelidi
+      if (length(overlap) < 3) next ## must be corrected
 
       tf_info <- tf_priority[tf_priority$TF == tf, ]
       if (nrow(tf_info) == 0) next
@@ -2496,7 +2490,7 @@ if (!is.null(fgsea_pathway) && nrow(fgsea_sig) > 0) {
         TF_delta_RC_vs_SC    = tf_info$delta_RC_vs_SC[1],
         TF_activity_direction= tf_info$activity_direction[1],
         TF_priority_score    = tf_info$priority_score[1],
-        overlap_n            = length(overlap), ##duzelmelidi
+        overlap_n            = length(overlap), ## must be corrected
         overlap_genes        = paste(overlap, collapse = ";"),
         iron_related         = tf_info$iron_related[1],
         mapk_akt             = tf_info$mapk_akt[1],

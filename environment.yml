@@ -30,3 +30,18 @@ dependencies:
   - bioconductor-pathview
   - bioconductor-multimir
   - bioconductor-stringdb
+  # Core R Environment & Terminal
+  #- r-base=4.5.3
+  #- radian=0.6.15
+  #- r-languageserver
+
+  # CRAN-based Tooling & Analytics
+  - r-xml2
+  - r-lintr
+  - r-roxygen2
+  - r-enrichr
+
+  # Bioconductor Ecosystem
+  - r-biocmanager
+  - bioconductor-multimir
+  - bioconductor-stringdb

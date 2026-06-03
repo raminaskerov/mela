@@ -1,14 +1,14 @@
 # Multi-Layer Transcriptomic Analysis of Encorafenib Resistance in BRAF-Mutant Melanoma
 
-**Reproduction and extension of:** Çolako\u011flu Bergel et al. (2025), *Scientific Reports*  
+**Reproduction and extension of:** Çolakoğlu Bergel et al. (2025), *Scientific Reports*  
 **Dataset:** [GEO GSE283251](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE283251)  
-**Analysis outputs:** [Zenodo — *DOI pending*]
+**Analysis outputs:** [Zenodo — (https://doi.org/10.5281/zenodo.20532571)]
 
 ---
 
 ## Overview
 
-This repository provides an independent R/Bioconductor reimplementation of the transcriptomic analysis from Çolakoğlu Bergel et al. (2025), which investigated intrinsic resistance mechanisms to the BRAF inhibitor Encorafenib in A375 melanoma cell lines. The original study used a Galaxy-based workflow (Arga & Gülfidan, not publicly available); this repository offers a fully scripted, reproducible alternative and extends the analysis with several additional layers: pathway enrichment, miRNA–mRNA network analysis, co-expression network analysis (WGCNA), transcription factor enrichment, and an optional legacy TF/WGCNA linkage stage.
+This repository provides an independent R/Bioconductor reimplementation of the transcriptomic analysis from Çolakoğlu Bergel et al. (2025), which investigated intrinsic resistance mechanisms to the BRAF inhibitor Encorafenib in A375 melanoma cell lines. This repository offers a fully scripted, reproducible alternative and extends the analysis with several additional layers: pathway enrichment, miRNA–mRNA network analysis, co-expression network analysis (WGCNA), transcription factor enrichment, and an optional legacy TF/WGCNA linkage stage.
 
 The central biological focus is the role of **iron metabolism, ferritinophagy, and lysosomal biology** as resistance mechanisms, with the miRNA–mRNA regulatory axis (particularly hsa-miR-140-3p → IREB2) as a key reference interaction from the source paper.
 
@@ -48,7 +48,10 @@ The current R scripts are organized as a numbered checkpoint chain:
 
 `main pipeline 2.R` is now only a thin runner that sources these stage scripts in order.
 
-**Pathway databases used:** KEGG, Reactome, MSigDB Hallmark, CollecTRI / DoRothEA (TF regulons)
+**Pathway databases used:** KEGG, Reactome, MSigDB Hallmark, CollecTRI / DoRothEA (TF regulons)  
+**GSEA multiple testing correction:** Benjamini–Hochberg (BH) applied to GSEA p-values via clusterProfiler defaults; results filtered at `p.adjust < 0.05`.  
+**WGCNA:** hierarchical clustering via flashClust; dynamic tree cutting (dynamicTreeCut); module–gene set overlap significance tested with Fisher's exact test.  
+**TF enrichment:** Univariate Linear Model (ULM) via decoupleR (primary); TF regulons sourced from CollecTRI / DoRothEA.
 
 ---
 

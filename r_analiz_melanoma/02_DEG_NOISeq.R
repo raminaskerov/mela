@@ -18,7 +18,8 @@
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 DATA_DIR   <- "/home/ramin/mela/data/ilk"  # <-- UPDATE THIS PATH
-OUTPUT_DIR <- file.path("newoutput")
+OUTPUT_DIR <- file.path(DATA_DIR, "newoutput")
+dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
 
 # ── Packages ──────────────────────────────────────────────────────────────────
@@ -164,7 +165,9 @@ mirna_deg4 <- save_deg_table(mirna_comp4, "DEGs_miRNA_S10_vs_R10.csv")
 # CHECKPOINT SAVE
 # =============================================================================
 
-save(sample_meta,
+save(mrna_mat, mrna_filtered, mrna_norm,
+     mirna_mat, mirna_filtered, mirna_cpm,
+     sample_meta,
      comp1, comp2, comp3, comp4,
      mirna_comp1, mirna_comp2, mirna_comp3, mirna_comp4,
      deg1, deg2, deg3, deg4,

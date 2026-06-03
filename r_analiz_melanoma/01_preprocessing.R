@@ -13,7 +13,7 @@
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 DATA_DIR   <- "/home/ramin/mela/data/ilk"  # <-- UPDATE THIS PATH
-OUTPUT_DIR <- file.path(mela , "newoutput")
+OUTPUT_DIR <- file.path(DATA_DIR, "newoutput")
 dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
 

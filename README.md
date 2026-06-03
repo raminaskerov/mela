@@ -8,7 +8,7 @@
 
 ## Overview
 
-This repository provides an independent R/Bioconductor reimplementation of the transcriptomic analysis from Çolakoğlu Bergel et al. (2025), which investigated intrinsic resistance mechanisms to the BRAF inhibitor Encorafenib in A375 melanoma cell lines. The original study used a Galaxy-based workflow (Arga & Gülfidan, not publicly available); this repository offers a fully scripted, reproducible alternative and extends the analysis with several additional layers: co-expression network analysis (WGCNA), transcription factor activity scoring, multi-layer convergence, and protein–protein interaction hub analysis.
+This repository provides an independent R/Bioconductor reimplementation of the transcriptomic analysis from Çolakoğlu Bergel et al. (2025), which investigated intrinsic resistance mechanisms to the BRAF inhibitor Encorafenib in A375 melanoma cell lines. The original study used a Galaxy-based workflow (Arga & Gülfidan, not publicly available); this repository offers a fully scripted, reproducible alternative and extends the analysis with several additional layers: pathway enrichment, miRNA–mRNA network analysis, co-expression network analysis (WGCNA), transcription factor enrichment, and an optional legacy TF/WGCNA linkage stage.
 
 The central biological focus is the role of **iron metabolism, ferritinophagy, and lysosomal biology** as resistance mechanisms, with the miRNA–mRNA regulatory axis (particularly hsa-miR-140-3p → IREB2) as a key reference interaction from the source paper.
 
@@ -33,18 +33,22 @@ Four comparisons analyzed: SC vs RC · SC vs S10 · RC vs R10 · S10 vs R10
 
 ## Analysis Pipeline
 
-| # | Layer | Method | Package(s) |
-|---|-------|--------|-----------|
-| 1 | Differential expression (mRNA + miRNA) | NOISeq | `NOISeq` |
-| 2 | Pathway enrichment | GSEA on full ranked gene list | `fgsea`, `clusterProfiler` |
-| 3 | miRNA–mRNA regulatory networks | Pathway-guided reverse multiMiR query | `multiMiR` 1.32.0 |
-| 4 | Co-expression modules | WGCNA | `WGCNA` |
-| 5 | Transcription factor activity | CollecTRI regulon fgsea + decoupleR ULM | `decoupleR`, `fgsea` |
-| 6 | Multi-layer convergence | 4-layer intersection scoring | custom R |
-| 7 | PPI hub analysis | STRING-based degree + WGCNA/TF overlap | `in progress` |
-| 8 | ML generalization | Cross-dataset feature classification | `planned` |
+The current R scripts are organized as a numbered checkpoint chain:
 
-**Pathway databases used:** KEGG, Reactome, MSigDB Hallmark, CollecTRI (TF regulons)
+| Stage | Script | Input | Output |
+|---|---|---|---|
+| 01 | `01_preprocessing.R` | GEO count files | `checkpoint_01.RData` |
+| 02 | `02_DEG_NOISeq.R` | `checkpoint_01.RData` | DEG tables + `checkpoint_02.RData` |
+| 03 | `03_enrichment.R` | `checkpoint_02.RData` | pathway GSEA tables + `checkpoint_03.RData` |
+| 04 | `04_visualizations.R` | `checkpoint_03.RData` | volcano plots, heatmaps, summary figures |
+| 05 | `05_mirna_mrna_integration.R` | `checkpoint_03.RData` + `pathway_gene_df` | reverse multiMiR network outputs + `checkpoint_05.RData` |
+| 06 | `06_TF_enrichment.R` | `checkpoint_03.RData` | TF fgsea, TF activity scores + `checkpoint_06.RData` |
+| 07 | `07_WGCNA.R` | `checkpoint_03.RData` | WGCNA modules + `checkpoint_07.RData` |
+| 08 | `08_legacy_wgcna_tf_linkage.R` | `checkpoint_06.RData` + `checkpoint_07.RData` | legacy TF/WGCNA linkage tables + `checkpoint_08.RData` |
+
+`main pipeline 2.R` is now only a thin runner that sources these stage scripts in order.
+
+**Pathway databases used:** KEGG, Reactome, MSigDB Hallmark, CollecTRI / DoRothEA (TF regulons)
 
 ---
 
@@ -82,25 +86,19 @@ Validated suppression of V-ATPase subunits (ATP6V1C1, TCIRG1) by miR-744-5p, dir
 
 ```
 .
-├── scripts/
-│   ├── 01_preprocessing.R           # GEO download, count matrix assembly
-│   ├── 02_DEG_NOISeq.R              # Differential expression, 4 comparisons
-│   ├── 03_GSEA_pathways.R           # KEGG, Reactome, Hallmark GSEA
-│   ├── 04_miRNA_networks.R          # Pathway-guided miRNA–mRNA networks
-│   ├── 05_WGCNA.R                   # Co-expression module construction
-│   ├── 06_TF_enrichment.R           # CollecTRI fgsea + decoupleR ULM scoring
-│   ├── 07_convergence.R             # 4-layer convergence + scoring
-│   ├── 08_PPI_network.R             # PPI hub + TF/mRNA network  [in progress]
-│   └── 09_ML_extension.R            # Multi-dataset ML classification [planned]
+├── r_analiz_melanoma/
+│   ├── 01_preprocessing.R
+│   ├── 02_DEG_NOISeq.R
+│   ├── 03_enrichment.R
+│   ├── 04_visualizations.R
+│   ├── 05_mirna_mrna_integration.R
+│   ├── 06_TF_enrichment.R
+│   ├── 07_WGCNA.R
+│   ├── 08_legacy_wgcna_tf_linkage.R
+│   └── main pipeline 2.R
 ├── data/
 │   └── README.md                    # GEO download instructions (raw data not included)
-├── figures/                         # Key output figures
-│   ├── gsea_hallmark_SC_vs_RC.pdf
-│   ├── wgcna_module_trait_heatmap.pdf
-│   ├── miRNA_network_arm1_arm2.pdf
-│   └── four_layer_convergence.pdf
-├── outputs/                         # Full results tables — see Data Availability
-│   └── .gitkeep
+├── output/ or data/ilk/newoutput/    # analysis outputs, depending on the local setup
 └── README.md
 ```
 
@@ -108,9 +106,11 @@ Validated suppression of V-ATPase subunits (ATP6V1C1, TCIRG1) by miR-744-5p, dir
 
 ## Planned Extensions
 
+### Legacy TF/WGCNA linkage
+The old WGCNA `2.13` comparison logic was split out of the core module stage and moved into `08_legacy_wgcna_tf_linkage.R`. It is optional and exists mainly for compatibility with the earlier interpretation chain that tied TF leading-edge hits to a small legacy target-gene list.
+
 ### PPI / TF–mRNA Network *(in progress)*
-Integration of STRING protein interaction data with WGCNA hub genes and TF candidate list to identify high-connectivity resistance hubs. Outputs include annotated hub table and Cytoscape-compatible network files (CX format).
-Results got but no verification and analysis at biological level.
+Integration of STRING protein interaction data with WGCNA hub genes and TF candidate list to identify high-connectivity resistance hubs. Outputs include annotated hub table and Cytoscape-compatible network files.
 
 ### ML Generalization *(planned)*
 Multi-dataset machine learning to assess whether the resistance gene signature generalizes across cell line models:
@@ -132,8 +132,8 @@ R ≥ 4.3, Bioconductor 3.20
 # Install Bioconductor packages
 BiocManager::install(c(
   "NOISeq", "clusterProfiler", "fgsea", "WGCNA",
-  "multiMiR", "decoupleR", "viper", "OmnipathR",
-  "org.Hs.eg.db", "ReactomePA"
+  "multiMiR", "decoupleR", "org.Hs.eg.db",
+  "ReactomePA", "msigdbr", "enrichplot"
 ))
 ```
 
@@ -145,7 +145,7 @@ Network export: Cytoscape (CX-format files)
 ## Data Availability
 
 **Raw counts:** GEO [GSE283251](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE283251) — download instructions in `data/README.md`  
-**Analysis outputs** (DEG tables, GSEA results, network edges, WGCNA module files): [Zenodo — *DOI pending after deposit*]
+**Analysis outputs** (DEG tables, pathway results, network edges, WGCNA module files): [Zenodo — *DOI pending after deposit*]
 
 ---
 
@@ -157,7 +157,8 @@ Network export: Cytoscape (CX-format files)
 
 ## Notes on Reproduction
 
-- NOISeq computes M = log2(A/B), so for the SC vs RC comparison, **positive M = higher in SC**. Sign corrected then.
+- NOISeq computes M = log2(A/B), so for the SC vs RC comparison, **positive M = higher in SC**. The stage scripts flip signs where needed so downstream tables consistently interpret positive log2FC as higher in the second comparison group.
 - Histone gene filter applied (replication-dependent HIST1/HIST2 clusters removed before enrichment).
 - BH correction is not applied to NOISeq probability scores; `prob ≥ 0.8` threshold used directly, consistent with NOISeq documentation.
 - `fgsea` ties warning (~85% tied ranks) is expected from NOISeq's integer count ratios and does not indicate a pipeline error; S10 vs R10 GSEA results are the least reliable comparison for this reason.
+- The checkpoint chain is explicit: `01 -> 02 -> 03 -> 04`, `03 -> 05`, `03 -> 06`, `03 -> 07`, `06 + 07 -> 08`.

@@ -2,13 +2,13 @@
 
 **Reproduction and extension of:** Çolakoğlu Bergel et al. (2025), *Scientific Reports*  
 **Dataset:** [GEO GSE283251](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE283251)  
-**Analysis outputs:** [Zenodo — (https://doi.org/10.5281/zenodo.20532571)]
+**Analysis outputs:** [Zenodo — [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20532572.svg)](https://doi.org/10.5281/zenodo.20532572)]
 
 ---
 
 ## Overview
 
-This repository provides an independent R/Bioconductor reimplementation of the transcriptomic analysis from Çolakoğlu Bergel et al. (2025), which investigated intrinsic resistance mechanisms to the BRAF inhibitor Encorafenib in A375 melanoma cell lines. This repository offers a fully scripted, reproducible alternative and extends the analysis with several additional layers: pathway enrichment, miRNA–mRNA network analysis, co-expression network analysis (WGCNA), transcription factor enrichment, and an optional legacy TF/WGCNA linkage stage.
+This repository provides an independent R/Bioconductor reimplementation of the transcriptomic analysis from Çolakoğlu Bergel et al. (2025), which investigated intrinsic resistance mechanisms to the BRAF inhibitor Encorafenib in A375 melanoma cell lines. Extends the analysis with several additional layers: pathway enrichment, miRNA–mRNA network analysis, co-expression network analysis (WGCNA), transcription factor enrichment, and an optional legacy TF/WGCNA linkage stage. Additionally,experimental PPI network, TF-mRNA network constructed,but result analysis weren't performed.
 
 The central biological focus is the role of **iron metabolism, ferritinophagy, and lysosomal biology** as resistance mechanisms, with the miRNA–mRNA regulatory axis (particularly hsa-miR-140-3p → IREB2) as a key reference interaction from the source paper.
 
@@ -52,6 +52,7 @@ The current R scripts are organized as a numbered checkpoint chain:
 **GSEA multiple testing correction:** Benjamini–Hochberg (BH) applied to GSEA p-values via clusterProfiler defaults; results filtered at `p.adjust < 0.05`.  
 **WGCNA:** hierarchical clustering via flashClust; dynamic tree cutting (dynamicTreeCut); module–gene set overlap significance tested with Fisher's exact test.  
 **TF enrichment:** Univariate Linear Model (ULM) via decoupleR (primary); TF regulons sourced from CollecTRI / DoRothEA.
+**Other methods:** Webgestalt results for GSEA pathway Enrichment comparised and no significant difference seen. Also no replicate edgeR and simulation based NOISeq comparised and no significant difference seen between two NOISeq approaches. Both approaches were better than edgeR
 
 ---
 
@@ -145,23 +146,20 @@ Network export: Cytoscape (CX-format files)
 
 ---
 
-## Data Availability
-
-**Raw counts:** GEO [GSE283251](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE283251) — download instructions in `data/README.md`  
-**Analysis outputs** (DEG tables, pathway results, network edges, WGCNA module files): [Zenodo — *DOI pending after deposit*]
-
----
 
 ## Reference
 
-Çolako\u011flu Bergel N, et al. (2025). *[Full title]*. *Scientific Reports*. DOI: *[add when available]*
+Çolakoğlu Bergel N, et al. (2025). *[Second-generation BRAF inhibitor Encorafenib resistance is regulated by NCOA4-mediated iron trafficking in the drug-resistant malignant melanoma cells]*. *Scientific Reports*.
+DOI: [[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20532572.svg)](https://doi.org/10.5281/zenodo.20532572)]
 
 ---
 
 ## Notes on Reproduction
 
+- Single-replicate design precludes standard p-value-based reliability. However, the convergence of results across independent analytical layers (DEG, GSEA, WGCNA, miRNA networks, TF enrichment) with biologically coherent outputs suggests the pipeline logic is sound. Results should be interpreted as **hypothesis-generating**; statistical conclusions would require replicated data.
 - NOISeq computes M = log2(A/B), so for the SC vs RC comparison, **positive M = higher in SC**. The stage scripts flip signs where needed so downstream tables consistently interpret positive log2FC as higher in the second comparison group.
 - Histone gene filter applied (replication-dependent HIST1/HIST2 clusters removed before enrichment).
 - BH correction is not applied to NOISeq probability scores; `prob ≥ 0.8` threshold used directly, consistent with NOISeq documentation.
 - `fgsea` ties warning (~85% tied ranks) is expected from NOISeq's integer count ratios and does not indicate a pipeline error; S10 vs R10 GSEA results are the least reliable comparison for this reason.
 - The checkpoint chain is explicit: `01 -> 02 -> 03 -> 04`, `03 -> 05`, `03 -> 06`, `03 -> 07`, `06 + 07 -> 08`.
+
